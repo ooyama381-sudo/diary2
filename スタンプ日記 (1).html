@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="color-scheme" content="light">
+<title>スタンプ日記</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Maru+Gothic:wght@400;500;700&family=Yuji+Boku&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #d9c9a0;
+    --desk: #b9a274;
+    --card: #f1e4c2;
+    --ink: #3a2f1f;
+    --ink-soft: #8a7855;
+    --line: rgba(58, 47, 31, 0.16);
+    --pine: #4b5a34;
+    --pine-soft: rgba(75, 90, 52, 0.16);
+    --brick: #b6532b;
+    --denim: #35586b;
+    --shadow: rgba(50, 38, 20, 0.3);
+    --grain-opacity: 0.14;
+    --spot-opacity: 0.45;
+
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(255, 250, 225, 0.35), transparent 55%),
+      radial-gradient(ellipse at 50% 115%, rgba(40, 30, 12, 0.4), transparent 65%),
+      linear-gradient(160deg, var(--paper), var(--desk) 120%);
+    color: var(--ink);
+    font-family: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 18px 14px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+    background-image: radial-gradient(rgba(58, 47, 31, 0.14) 1px, transparent 1.2px);
+    background-size: 5px 5px;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 520px; width: 100%; margin: 0 auto; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  #mainView { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  #list { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+  .nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .nav-btn {
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 0.8rem;
+    border-radius: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .nav-btn:disabled { opacity: 0.4; cursor: default; }
+  .top-memo {
+    flex: 1;
+    min-width: 0;
+    font-family: "Shippori Mincho", serif;
+    font-size: 16px;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--line);
+    text-align: center;
+    padding: 4px 2px;
+    margin: 0 8px;
+  }
+  .top-memo::placeholder { color: var(--ink-soft); }
+  .top-memo:focus { outline: none; border-bottom-style: solid; border-bottom-color: var(--pine); }
+
+  .day-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 0;
+    min-height: 0;
+  }
+
+  .day-cell-outer {
+    position: relative;
+    width: 100%;
+    min-height: 150px;
+  }
+
+  .day-cell {
+    position: absolute;
+    inset: 0;
+    background: var(--card);
+    padding: 14px 10px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    isolation: isolate;
+    box-shadow: 0 1px 1px var(--shadow), 0 6px 10px -6px var(--shadow), inset 0 0 0 1px rgba(58, 47, 31, 0.12);
+  }
+  .day-cell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: var(--grain-opacity);
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    z-index: 1;
+  }
+  .day-cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: var(--spot-opacity);
+    mix-blend-mode: multiply;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(120, 90, 45, 0.15), transparent 34%),
+      radial-gradient(circle at 82% 78%, rgba(120, 90, 45, 0.13), transparent 32%),
+      radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(58, 47, 31, 0.14) 100%);
+  }
+  .day-cell > * { position: relative; z-index: 2; }
+  .day-cell.today { box-shadow: 0 1px 1px var(--shadow), 0 6px 10px -6px var(--shadow), inset 0 0 0 1px rgba(58, 47, 31, 0.12), 0 0 0 2px var(--pine-soft); }
+  .day-cell.week { box-shadow: 0 1px 1px var(--shadow), 0 6px 10px -6px var(--shadow), inset 0 0 0 1px rgba(58, 47, 31, 0.12), 0 0 0 2px rgba(53, 88, 107, 0.28); }
+
+  .date-label {
+    align-self: flex-start;
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 5px;
+  }
+  .date-label .wd { font-size: 0.68rem; font-weight: 500; color: var(--ink-soft); margin-left: 2px; }
+  .date-label.sat { color: var(--denim); }
+  .date-label.sun { color: var(--brick); }
+
+  .stamp-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  .stamp-big {
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border: 3px solid var(--stamp-color, var(--pine));
+    background: color-mix(in srgb, var(--stamp-color, var(--pine)) 12%, var(--card));
+    color: var(--stamp-color, var(--ink-soft));
+    overflow: hidden;
+  }
+  .stamp-big:active { transform: scale(0.94); }
+  .stamp-big.empty { border: 3px dashed var(--line); background: transparent; color: var(--ink-soft); }
+  .stamp-big.empty::after { content: "＋"; font-size: 2.2rem; }
+  .stamp-big.open { border-color: var(--pine); box-shadow: 0 0 0 2px var(--pine-soft); }
+
+  .stamp-fill {
+    position: absolute;
+    inset: -14px -10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6px 4px;
+    background: none;
+    border: none;
+    color: var(--stamp-color, var(--ink-soft));
+    font-family: inherit;
+    font-weight: 700;
+    font-size: clamp(13px, 5.5vw, 19px);
+    line-height: 1.25;
+    cursor: pointer;
+    overflow: hidden;
+    word-break: break-word;
+  }
+
+
+  .radial-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+  }
+  .radial-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(58, 47, 31, 0.18);
+  }
+  .radial-btn {
+    position: absolute;
+    width: 46px;
+    height: 46px;
+    margin-left: -23px;
+    margin-top: -23px;
+    border-radius: 50%;
+    border: 2px solid var(--stamp-color, var(--pine));
+    background: color-mix(in srgb, var(--stamp-color, var(--pine)) 14%, var(--card));
+    color: var(--stamp-color, var(--pine));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px rgba(50, 38, 20, 0.35);
+    cursor: pointer;
+  }
+  .radial-btn:active { transform: scale(0.92); }
+
+  .history-link {
+    display: block;
+    width: fit-content;
+    margin: 0 auto 16px;
+    background: transparent;
+    border: none;
+    color: var(--ink-soft);
+    font-family: "Shippori Mincho", serif;
+    font-size: 0.8rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  #calendarView { display: none; }
+  .cal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .cal-title { font-family: "Shippori Mincho", serif; font-weight: 700; font-size: 1.05rem; }
+  .cal-back {
+    display: block;
+    width: fit-content;
+    margin: 0 auto 16px;
+    background: transparent;
+    border: none;
+    color: var(--brick);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 0.68rem;
+    color: var(--ink-soft);
+    padding-bottom: 6px;
+  }
+  .cal-weekdays span.sat { color: var(--denim); }
+  .cal-weekdays span.sun { color: var(--brick); }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 18px;
+  }
+  .cal-cell {
+    aspect-ratio: 1 / 1;
+    background: var(--card);
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 0.62rem;
+    color: var(--ink-soft);
+  }
+  .cal-cell.pad { opacity: 0.3; }
+  .cal-cell.today { border-color: var(--pine); border-width: 2px; }
+  .cal-cell .cal-num.sat { color: var(--denim); }
+  .cal-cell .cal-num.sun { color: var(--brick); }
+  .cal-cell .cal-stamp { width: 18px; height: 18px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="mainView">
+    <div class="nav-bar">
+      <button class="nav-btn" id="prevBtn">◀ 前へ</button>
+      <input class="top-memo" id="topMemo" type="text" maxlength="14" placeholder="……">
+      <button class="nav-btn" id="nextBtn">次へ ▶</button>
+    </div>
+    <button class="history-link" id="historyBtn">🗓 これまでの記録をカレンダーで見る</button>
+    <div id="list"></div>
+  </div>
+
+  <div id="calendarView">
+    <div class="cal-head">
+      <button class="nav-btn" id="calPrevBtn">◀</button>
+      <span class="cal-title" id="calTitle"></span>
+      <button class="nav-btn" id="calNextBtn">▶</button>
+    </div>
+    <div class="cal-weekdays">
+      <span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="sat">土</span><span class="sun">日</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <button class="cal-back" id="calBackBtn">← 戻る</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = "stamp-calendar-data-v1";
+  const STAMPS = [
+    { e: "po", n: "ポ", c: "#b7402f", text: "ポ" },
+    { e: "candy", n: "お菓子", c: "#c1602a", icon: "candy" },
+    { e: "phone", n: "スマホ", c: "#5b6b7a", icon: "phone" },
+    { e: "headphone", n: "ヘッドホン", c: "#7a6a9e", icon: "headphone" },
+    { e: "hanamaru", n: "はなまる", c: "#e0668a", icon: "hanamaru" },
+    { e: "naki", n: "復活", c: "#2f7d6e", emoji: "🔥", longText: "いや、ダメかと思ったけれども、頑張って立ち直ったよ。" }
+  ];
+  const stampMap = {};
+  STAMPS.forEach((s) => (stampMap[s.e] = s));
+
+  const SHAPES = {
+    candy:
+      '<rect x="7" y="8.5" width="10" height="7" rx="3" fill="currentColor" stroke="none"/>' +
+      '<path d="M7 12 L2 7.5 L2 16.5 Z" fill="currentColor" stroke="none"/>' +
+      '<path d="M17 12 L22 7.5 L22 16.5 Z" fill="currentColor" stroke="none"/>',
+    phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.4" fill="currentColor" stroke="none"/>',
+    headphone:
+      '<path d="M5 14a7 7 0 0 1 14 0" fill="none" stroke-width="3.6"/>' +
+      '<circle cx="5" cy="15.6" r="3.2" fill="currentColor" stroke="none"/>' +
+      '<circle cx="19" cy="15.6" r="3.2" fill="currentColor" stroke="none"/>',
+    hanamaru:
+      '<circle cx="12" cy="5.6" r="4" fill="currentColor" stroke="none"/>' +
+      '<circle cx="6.6" cy="9.6" r="4" fill="currentColor" stroke="none"/>' +
+      '<circle cx="8.7" cy="16.1" r="4" fill="currentColor" stroke="none"/>' +
+      '<circle cx="15.3" cy="16.1" r="4" fill="currentColor" stroke="none"/>' +
+      '<circle cx="17.4" cy="9.6" r="4" fill="currentColor" stroke="none"/>',
+    revival:
+      '<path d="M12 1.2 C8 5 5.5 9.5 5.5 13 C5.5 17 8.5 19.5 12 19.5 C15.5 19.5 18.5 17 18.5 13 C18.5 9.5 16 5 12 1.2 Z" fill="currentColor" stroke="none"/>' +
+      '<path d="M9.3 15 C7.3 18 6.2 20.5 7 22 C7.5 23 9 22.7 9.2 21.3 C9.4 19.8 9.6 17 9.3 15 Z" fill="currentColor" stroke="none"/>' +
+      '<path d="M14.7 15 C16.7 18 17.8 20.5 17 22 C16.5 23 15 22.7 14.8 21.3 C14.6 19.8 14.4 17 14.7 15 Z" fill="currentColor" stroke="none"/>'
+  };
+  function iconSvg(key, size) {
+    return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size +
+      '" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block">' +
+      (SHAPES[key] || "") + "</svg>";
+  }
+  function stampIcon(s, size) {
+    if (s.emoji) {
+      return '<span style="font-size:' + Math.round(size * 1.1) + 'px;line-height:1;display:block;">' + s.emoji + "</span>";
+    }
+    if (s.text) {
+      return '<span style="font-family:\'Yuji Boku\',serif;font-size:' + Math.round(size * 1.1) +
+        'px;line-height:1;display:block;">' + s.text + "</span>";
+    }
+    if (s.icon && SHAPES[s.icon]) return iconSvg(s.icon, size);
+    return '<span style="font-size:' + Math.round(size * 0.9) + 'px;line-height:1;">' + (s.e || "") + "</span>";
+  }
+
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+  function playPon() {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    try {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(430, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.13);
+      g.gain.setValueAtTime(0.24, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.22);
+    } catch (e) {}
+  }
+
+  let data = {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    data = raw ? JSON.parse(raw) : {};
+  } catch (e) { data = {}; }
+
+  function saveData() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+  }
+
+  function entryFor(key) {
+    if (!data[key]) data[key] = { stamp: null, note: "" };
+    if (data[key].stamp === undefined) data[key].stamp = null;
+    if (data[key].note === undefined) data[key].note = "";
+    return data[key];
+  }
+
+  const today = new Date();
+  function dateKey(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  const PAGE_MEMO_KEY = "stamp-calendar-pagememos-v1";
+  let pageMemos = {};
+  try {
+    pageMemos = JSON.parse(localStorage.getItem(PAGE_MEMO_KEY) || "{}");
+  } catch (e) { pageMemos = {}; }
+  function pageMemoKey(off) {
+    return dateKey(pageInfo(off).days[0]);
+  }
+  function savePageMemos() {
+    try { localStorage.setItem(PAGE_MEMO_KEY, JSON.stringify(pageMemos)); } catch (e) {}
+  }
+
+  let offset = 0;
+  let overlayEl = null;
+  let overlayStampDiv = null;
+
+  function closeRadial() {
+    if (overlayEl) { overlayEl.remove(); overlayEl = null; }
+    if (overlayStampDiv) { overlayStampDiv.classList.remove("open"); overlayStampDiv = null; }
+  }
+
+  function openRadial(stampDiv, entry) {
+    closeRadial();
+    overlayStampDiv = stampDiv;
+    stampDiv.classList.add("open");
+
+    const rect = stampDiv.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const radius = 84;
+    const n = STAMPS.length;
+
+    overlayEl = document.createElement("div");
+    overlayEl.className = "radial-overlay";
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "radial-backdrop";
+    backdrop.addEventListener("click", closeRadial);
+    overlayEl.appendChild(backdrop);
+
+    STAMPS.forEach((s, idx) => {
+      const angle = (Math.PI * 2 * idx) / n - Math.PI / 2;
+      const bx = cx + radius * Math.cos(angle);
+      const by = cy + radius * Math.sin(angle);
+      const b = document.createElement("button");
+      b.className = "radial-btn";
+      b.style.left = bx + "px";
+      b.style.top = by + "px";
+      b.style.setProperty("--stamp-color", s.c);
+      b.style.color = s.c;
+      b.innerHTML = stampIcon(s, 26);
+      b.title = s.n;
+      b.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        entry.stamp = s.e;
+        saveData();
+        playPon();
+        closeRadial();
+        render();
+      });
+      overlayEl.appendChild(b);
+    });
+
+    document.body.appendChild(overlayEl);
+  }
+
+  function mondayOf(date) {
+    const d = new Date(date);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return d;
+  }
+  function pageInfo(n) {
+    let monday = mondayOf(today);
+    let half = ((today.getDay() + 6) % 7) <= 3 ? 0 : 1; // 0: 月〜木, 1: 金〜日
+    for (let k = 0; k < n; k++) {
+      if (half === 1) {
+        half = 0;
+      } else {
+        monday = new Date(monday);
+        monday.setDate(monday.getDate() - 7);
+        half = 1;
+      }
+    }
+    const startOffset = half === 0 ? 0 : 4;
+    const count = half === 0 ? 4 : 3;
+    const start = new Date(monday);
+    start.setDate(start.getDate() + startOffset);
+    const days = [];
+    for (let i = 0; i < count; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      days.push(d);
+    }
+    return { monday, half, days };
+  }
+
+  const list = document.getElementById("list");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const topMemo = document.getElementById("topMemo");
+
+  topMemo.addEventListener("change", () => {
+    pageMemos[pageMemoKey(offset)] = topMemo.value.slice(0, 14);
+    savePageMemos();
+  });
+
+  const WD = ["日", "月", "火", "水", "木", "金", "土"];
+
+  function render() {
+    closeRadial();
+    topMemo.value = pageMemos[pageMemoKey(offset)] || "";
+    list.innerHTML = "";
+    const grid = document.createElement("div");
+    grid.className = "day-grid";
+    list.appendChild(grid);
+
+    nextBtn.disabled = offset === 0;
+
+    const { monday, half, days } = pageInfo(offset);
+
+    days.forEach((d) => {
+      const key = dateKey(d);
+      const isToday = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+      const wdIdx = d.getDay();
+      const entry = entryFor(key);
+
+      const outer = document.createElement("div");
+      outer.className = "day-cell-outer";
+
+      const cell = document.createElement("div");
+      cell.className = "day-cell" + (isToday ? " today" : "");
+
+      const label = document.createElement("div");
+      label.className = "date-label" + (wdIdx === 6 ? " sat" : "") + (wdIdx === 0 ? " sun" : "");
+      label.innerHTML = `${d.getMonth() + 1}/${d.getDate()}<span class="wd">（${WD[wdIdx]}）</span>`;
+      cell.appendChild(label);
+
+      const stampWrap = document.createElement("div");
+      stampWrap.className = "stamp-wrap";
+
+      if (entry.stamp) {
+        const s = stampMap[entry.stamp] || { e: entry.stamp, c: "#2f5d50" };
+        if (s.longText) {
+          const fillDiv = document.createElement("div");
+          fillDiv.className = "stamp-fill";
+          fillDiv.style.setProperty("--stamp-color", s.c);
+          fillDiv.textContent = s.longText;
+          fillDiv.title = (s.n ? s.n + " / " : "") + "タップで消す";
+          fillDiv.addEventListener("click", () => {
+            entry.stamp = null;
+            saveData();
+            render();
+          });
+          stampWrap.appendChild(fillDiv);
+        } else {
+          const stampDiv = document.createElement("div");
+          stampDiv.className = "stamp-big";
+          stampDiv.style.setProperty("--stamp-color", s.c);
+          stampDiv.innerHTML = stampIcon(s, 68);
+          stampDiv.title = (s.n ? s.n + " / " : "") + "タップで消す";
+          stampDiv.addEventListener("click", () => {
+            entry.stamp = null;
+            saveData();
+            render();
+          });
+          stampWrap.appendChild(stampDiv);
+        }
+      } else {
+        const stampDiv = document.createElement("div");
+        stampDiv.className = "stamp-big empty";
+        stampDiv.title = "タップでスタンプを選ぶ";
+        stampDiv.addEventListener("click", () => {
+          openRadial(stampDiv, entry);
+        });
+        stampWrap.appendChild(stampDiv);
+      }
+      cell.appendChild(stampWrap);
+
+      outer.appendChild(cell);
+      grid.appendChild(outer);
+    });
+
+    if (half === 1) {
+      const weekEnd = new Date(monday);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      const weekKey = "week-" + dateKey(monday);
+      const weekEntry = entryFor(weekKey);
+
+      const outer = document.createElement("div");
+      outer.className = "day-cell-outer";
+
+      const cell = document.createElement("div");
+      cell.className = "day-cell week";
+
+      const label = document.createElement("div");
+      label.className = "date-label";
+      label.innerHTML = `週<span class="wd">${monday.getMonth() + 1}/${monday.getDate()}〜${weekEnd.getMonth() + 1}/${weekEnd.getDate()}</span>`;
+      cell.appendChild(label);
+
+      const stampWrap = document.createElement("div");
+      stampWrap.className = "stamp-wrap";
+
+      if (weekEntry.stamp) {
+        const s = stampMap[weekEntry.stamp] || { e: weekEntry.stamp, c: "#2f5d50" };
+        if (s.longText) {
+          const fillDiv = document.createElement("div");
+          fillDiv.className = "stamp-fill";
+          fillDiv.style.setProperty("--stamp-color", s.c);
+          fillDiv.textContent = s.longText;
+          fillDiv.title = (s.n ? s.n + " / " : "") + "タップで消す";
+          fillDiv.addEventListener("click", () => {
+            weekEntry.stamp = null;
+            saveData();
+            render();
+          });
+          stampWrap.appendChild(fillDiv);
+        } else {
+          const stampDiv = document.createElement("div");
+          stampDiv.className = "stamp-big";
+          stampDiv.style.setProperty("--stamp-color", s.c);
+          stampDiv.innerHTML = stampIcon(s, 68);
+          stampDiv.title = (s.n ? s.n + " / " : "") + "タップで消す";
+          stampDiv.addEventListener("click", () => {
+            weekEntry.stamp = null;
+            saveData();
+            render();
+          });
+          stampWrap.appendChild(stampDiv);
+        }
+      } else {
+        const stampDiv = document.createElement("div");
+        stampDiv.className = "stamp-big empty";
+        stampDiv.title = "タップでスタンプを選ぶ";
+        stampDiv.addEventListener("click", () => {
+          openRadial(stampDiv, weekEntry);
+        });
+        stampWrap.appendChild(stampDiv);
+      }
+      cell.appendChild(stampWrap);
+
+      outer.appendChild(cell);
+      grid.appendChild(outer);
+    }
+  }
+
+  prevBtn.addEventListener("click", () => {
+    offset += 1;
+    render();
+  });
+  nextBtn.addEventListener("click", () => {
+    offset = Math.max(0, offset - 1);
+    render();
+  });
+
+  const mainView = document.getElementById("mainView");
+  const calendarView = document.getElementById("calendarView");
+  const historyBtn = document.getElementById("historyBtn");
+  const calBackBtn = document.getElementById("calBackBtn");
+  const calPrevBtn = document.getElementById("calPrevBtn");
+  const calNextBtn = document.getElementById("calNextBtn");
+  const calTitle = document.getElementById("calTitle");
+  const calGrid = document.getElementById("calGrid");
+
+  let calYear = today.getFullYear();
+  let calMonth = today.getMonth();
+
+  function renderCalendar() {
+    calTitle.textContent = `${calYear}年 ${calMonth + 1}月`;
+    calGrid.innerHTML = "";
+
+    const firstOfMonth = new Date(calYear, calMonth, 1);
+    const startOffset = (firstOfMonth.getDay() + 6) % 7;
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(calYear, calMonth, 0).getDate();
+    const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+    for (let i = 0; i < totalCells; i++) {
+      const dayNum = i - startOffset + 1;
+      let cellYear = calYear, cellMonth = calMonth, cellDay, isPad = false;
+
+      if (dayNum < 1) {
+        cellMonth = calMonth - 1;
+        cellYear = cellMonth < 0 ? calYear - 1 : calYear;
+        cellMonth = (cellMonth + 12) % 12;
+        cellDay = daysInPrevMonth + dayNum;
+        isPad = true;
+      } else if (dayNum > daysInMonth) {
+        cellMonth = calMonth + 1;
+        cellYear = cellMonth > 11 ? calYear + 1 : calYear;
+        cellMonth = cellMonth % 12;
+        cellDay = dayNum - daysInMonth;
+        isPad = true;
+      } else {
+        cellDay = dayNum;
+      }
+
+      const weekdayIdx = i % 7;
+      const cellDate = new Date(cellYear, cellMonth, cellDay);
+      const key = dateKey(cellDate);
+      const isToday = !isPad && cellYear === today.getFullYear() && cellMonth === today.getMonth() && cellDay === today.getDate();
+      const dayEntry = data[key];
+
+      const cell = document.createElement("div");
+      cell.className = "cal-cell" + (isPad ? " pad" : "") + (isToday ? " today" : "");
+
+      const num = document.createElement("div");
+      num.className = "cal-num" + (weekdayIdx === 5 ? " sat" : "") + (weekdayIdx === 6 ? " sun" : "");
+      num.textContent = cellDay;
+      cell.appendChild(num);
+
+      if (dayEntry && dayEntry.stamp) {
+        const s = stampMap[dayEntry.stamp] || { e: dayEntry.stamp, c: "#2f5d50" };
+        const st = document.createElement("div");
+        st.className = "cal-stamp";
+        st.style.color = s.c;
+        st.innerHTML = stampIcon(s, 18);
+        cell.appendChild(st);
+      }
+
+      calGrid.appendChild(cell);
+    }
+  }
+
+  historyBtn.addEventListener("click", () => {
+    calYear = today.getFullYear();
+    calMonth = today.getMonth();
+    renderCalendar();
+    mainView.style.display = "none";
+    calendarView.style.display = "block";
+  });
+  calBackBtn.addEventListener("click", () => {
+    calendarView.style.display = "none";
+    mainView.style.display = "flex";
+  });
+  calPrevBtn.addEventListener("click", () => {
+    calMonth -= 1;
+    if (calMonth < 0) { calMonth = 11; calYear -= 1; }
+    renderCalendar();
+  });
+  calNextBtn.addEventListener("click", () => {
+    calMonth += 1;
+    if (calMonth > 11) { calMonth = 0; calYear += 1; }
+    renderCalendar();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
